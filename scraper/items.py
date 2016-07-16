@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 
-# Define here the models for your scraped items
-#
-# See documentation in:
-# http://doc.scrapy.org/en/latest/topics/items.html
-
 import scrapy
 
-
-class ScraperItem(scrapy.Item):
-    # define the fields for your item here like:
-    # name = scrapy.Field()
-    pass
+class Player(scrapy.Item):
+    _id = scrapy.Field()
+    city = scrapy.Field()
+    rating_level = scrapy.Field()
+    rating_type = scrapy.Field()
+    age_group = scrapy.Field()
+    matches_played = scrapy.Field()
+    gender = scrapy.Field()
+    area = scrapy.Field()
+    scraped_on = scrapy.Field()
+    first_name = scrapy.Field()
+    last_name = scrapy.Field()
