@@ -12,6 +12,7 @@ class UstaSpider(scrapy.Spider):
         'https://www.ustanorcal.com/ntrpsearch.asp#goto',
         'https://www.ustanorcal.com/listdivisions.asp'
     ]
+    area = 'eb' # set to None or '' to download all areas
 
     def parse(self, response):
         # extract select options for post request
@@ -23,8 +24,8 @@ class UstaSpider(scrapy.Spider):
                 opt_values.append(opt.xpath('td/select/option/@value')[1:].extract())
             # send post request for all options combinations
             for idx, opt_combo in enumerate(itertools.product(*opt_values)):
-                if idx > 3: break
-                logger.warning('players = {}'.format(opt_combo))
+                if self.area and self.area not in opt_combo[0]: continue
+                logger.info('players = {}'.format(opt_combo))
                 payload = dict(
                     (opt_keys[iopt], opt)
                     for iopt, opt in enumerate(opt_combo)
@@ -64,16 +65,17 @@ class UstaSpider(scrapy.Spider):
     def parse_league(self, response):
         urls = response.xpath('//table')[2].xpath('tr/td/a/@href').extract()
         for idx, url in enumerate(urls):
-            if idx > 3: break
-            logger.warning('league = {}'.format(url))
+            logger.info('league = {}'.format(url))
             yield scrapy.Request(response.urljoin(url), self.parse_teams)
 
     def parse_teams(self, response):
-        rows = response.xpath('//table[@class="DataList"]/tr[@bgcolor]')
-        for idx, row in enumerate(rows):
-            if idx > 3: break
-            url = row.xpath('td')[0].xpath('a/@href').extract_first()
-            logger.warning('team = {}'.format(url))
+        table = response.xpath('//table[@class="DataList"]')
+        rows = table.xpath(
+            'tr[td//text()[contains(., "{}")]]'.format(self.area.upper())
+        ) if self.area else table.xpath('tr')
+        urls = rows.xpath('/td/a/@href[contains(., "teaminfo")]').extract()
+        for idx, url in enumerate(urls):
+            logger.info('team = {}'.format(url))
             yield scrapy.Request(response.urljoin(url), self.parse_team)
 
     def parse_team(self, response):
