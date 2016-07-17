@@ -11,7 +11,6 @@ class Player(scrapy.Item):
     matches_played = scrapy.Field()
     gender = scrapy.Field()
     area = scrapy.Field()
-    scraped_on = scrapy.Field()
     first_name = scrapy.Field()
     last_name = scrapy.Field()
 
