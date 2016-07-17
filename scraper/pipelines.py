@@ -5,8 +5,9 @@
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: http://doc.scrapy.org/en/latest/topics/item-pipeline.html
 
-import pymongo
-import inflect
+import pymongo, inflect
+from scrapy.exceptions import DropItem
+
 inflect_engine = inflect.engine()
 
 class MongoPipeline(object):
@@ -31,5 +32,12 @@ class MongoPipeline(object):
 
     def process_item(self, item, spider):
         collection_name = inflect_engine.plural(type(item).__name__.lower())
-        self.db[collection_name].insert(dict(item))
-        return item
+        collection = self.db[collection_name]
+        item_exists = bool(collection.find({'_id': item['_id']}).count() > 0)
+        if item_exists:
+            raise DropItem("Duplicate item found in {}: {}".format(
+                collection_name, item['_id']
+            ))
+        else:
+            collection.insert(dict(item))
+            return item
