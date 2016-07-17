@@ -76,7 +76,7 @@ class UstaSpider(scrapy.Spider):
         rows = table.xpath(
             'tr[td//text()[contains(., "{}")]]'.format(self.area.upper())
         ) if self.area else table.xpath('tr')
-        urls = rows.xpath('/td/a/@href[contains(., "teaminfo")]').extract()
+        urls = rows.xpath('td/a/@href[contains(., "teaminfo")]').extract()
         for idx, url in enumerate(urls):
             logger.info('team = {}'.format(url))
             yield scrapy.Request(response.urljoin(url), self.parse_team)
