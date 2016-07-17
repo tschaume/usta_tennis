@@ -43,7 +43,8 @@ class UstaSpider(scrapy.Spider):
             )
 
     def parse_players(self, response):
-        if not response.xpath('//b[text()="No Players Found!"]'):
+        no_players_found = response.xpath('//b[text()="No Players Found!"]')
+        if not no_players_found:
             for row in response.xpath('//table')[-1].xpath('tr')[3:-2]:
                 player = Player()
                 columns = row.xpath('td')
@@ -61,6 +62,8 @@ class UstaSpider(scrapy.Spider):
                 player['first_name'] = name[-1].strip().split()[0]
                 player['last_name'] = name[0].strip()
                 yield player
+        else:
+            logger.info('No Players Found!')
 
     def parse_league(self, response):
         urls = response.xpath('//table')[2].xpath('tr/td/a/@href').extract()
