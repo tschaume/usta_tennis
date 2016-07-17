@@ -76,7 +76,6 @@ class UstaSpider(scrapy.Spider):
         urls = response.xpath('//td/a/@href[contains(.,"scorecard")]').extract()
         for url in urls:
             yield scrapy.Request(response.urljoin(url), self.parse_match)
-            break
 
     def get_score(self, row):
         score = row.xpath('td')[3].xpath('text()').extract_first()
@@ -88,6 +87,8 @@ class UstaSpider(scrapy.Spider):
                 'td[@bgcolor="{}"]/a/@href'.format(bgcolor)
             ).extract()
         ]
+        if not ids:
+            return None # player default
         return ids if len(ids) > 1 else ids[0]
 
 
