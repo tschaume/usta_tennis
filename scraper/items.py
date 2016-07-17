@@ -14,3 +14,9 @@ class Player(scrapy.Item):
     scraped_on = scrapy.Field()
     first_name = scrapy.Field()
     last_name = scrapy.Field()
+
+class Match(scrapy.Item):
+    _id = scrapy.Field()
+    date = scrapy.Field()
+    singles = scrapy.Field()
+    doubles = scrapy.Field()
