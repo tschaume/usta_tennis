@@ -6,6 +6,8 @@
 # See: http://doc.scrapy.org/en/latest/topics/item-pipeline.html
 
 import pymongo
+import inflect
+inflect_engine = inflect.engine()
 
 class MongoPipeline(object):
 
@@ -28,6 +30,6 @@ class MongoPipeline(object):
         self.client.close()
 
     def process_item(self, item, spider):
-        collection_name = type(item).__name__.lower() + 's'
+        collection_name = inflect_engine.plural(type(item).__name__.lower())
         self.db[collection_name].insert(dict(item))
         return item
