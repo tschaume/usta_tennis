@@ -2,12 +2,9 @@ from nose.tools import *
 from usta_tennis.crd import crd
 
 def test_crd():
-    # competitive 3-set matches
+    # 3-set matches (always CRD of 0.015)
     assert_almost_equals(crd(['75', '57', '10']), 0.015, places=3)
-    assert_almost_equals(crd(['64', '46', '64']), 0.03, places=2)
-    assert_almost_equals(crd(['75', '57', '75']), 0.03, places=2)
-    assert_almost_equals(crd(['75', '57', '63']), 0.045, places=3)
-    assert_almost_equals(crd(['75', '57', '61']), 0.075, places=3)
+    assert_almost_equals(crd(['75', '06', '61']), 0.015, places=3)
     # competitive 2-set matches
     # one competitive set (>= 3 games) or
     # total >= 4 games
@@ -30,5 +27,4 @@ def test_crd():
     assert_almost_equals(crd(['62', '60']), 0.295, places=3)
     assert_almost_equals(crd(['61', '61']), 0.295, places=3)
     assert_almost_equals(crd(['61', '60']), 0.325, places=3)
-    # double-bagel should raise ValueError
-    assert_raises(ValueError, crd, ['60', '60'])
+    assert_almost_equals(crd(['60', '60']), 0.355, places=3)
