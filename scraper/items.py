@@ -19,3 +19,10 @@ class Match(scrapy.Item):
     date = scrapy.Field()
     singles = scrapy.Field()
     doubles = scrapy.Field()
+
+class TlsEntry(scrapy.Item):
+    name = scrapy.Field()
+    year = scrapy.Field()
+    league = scrapy.Field()
+    rating = scrapy.Field()
+    area = scrapy.Field()
