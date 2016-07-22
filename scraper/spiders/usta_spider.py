@@ -13,6 +13,7 @@ class UstaSpider(scrapy.Spider):
         'https://www.ustanorcal.com/listdivisions.asp'
     ]
     area = 'eb' # set to None or '' to download all areas
+    seasonid = '138'
 
     def parse(self, response):
         # extract select options for post request
@@ -37,7 +38,7 @@ class UstaSpider(scrapy.Spider):
                     callback=self.parse_players
                 )
         elif 'listdivisions' in response.url:
-            payload = {'seasonid': '192', 'submit1': ' GO '}
+            payload = {'seasonid': self.seasonid, 'submit1': ' GO '}
             yield scrapy.http.FormRequest(
                 response.url, formdata=payload, callback=self.parse_league
             )
