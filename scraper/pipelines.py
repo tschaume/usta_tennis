@@ -32,11 +32,5 @@ class MongoPipeline(object):
 
     def process_item(self, item, spider):
         collection_name = inflect_engine.plural(type(item).__name__.lower())
-        collection = self.db[collection_name]
-        doc = dict(item)
-        item_exists = bool(collection.find(doc).count() > 0)
-        if item_exists:
-            raise DropItem("Duplicate in {}:".format(collection_name))
-        else:
-            collection.insert(doc)
-            return item
+        self.db[collection_name].insert(dict(item))
+        return item
