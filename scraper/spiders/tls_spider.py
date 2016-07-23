@@ -54,23 +54,26 @@ class TlsSpider(scrapy.Spider):
         for row in response.xpath('//table')[-1].xpath(
             '//tr[contains(td/@class, "tdatlevel")]'
         ):
-            name = row.xpath('td/a[@href]/text()').extract_first()
-            cols = row.xpath('td/text()').extract()
-            if name:
-                entry = TlsEntry()
-                entry['name'] = name
-                entry['year'] = response.meta['year']
-                entry['section'] = response.meta['section']
-                entry['area'] = response.meta['area']
-                entry['facility'] = cols[3]
-                entry['level'] = cols[10] + cols[11]
-            else:
-                entry['league'] = cols[2]
-                entry['flight'] = cols[3]
-                entry['matches'] = {'W': int(cols[5]), 'L': int(cols[6])}
-                entry['games'] = {'W': int(cols[7]), 'L': int(cols[8])}
-                try:
-                    entry['rating'] = float(cols[9])
-                except ValueError:
-                    continue
-                yield entry
+            try:
+                name = row.xpath('td/a[@href]/text()').extract_first()
+                cols = row.xpath('td/text()').extract()
+                if name:
+                    entry = TlsEntry()
+                    entry['name'] = name
+                    entry['year'] = response.meta['year']
+                    entry['section'] = response.meta['section']
+                    entry['area'] = response.meta['area']
+                    entry['facility'] = cols[3]
+                    entry['level'] = cols[10] + cols[11]
+                else:
+                    entry['league'] = cols[2]
+                    entry['flight'] = cols[3]
+                    entry['matches'] = {'W': int(cols[5]), 'L': int(cols[6])}
+                    entry['games'] = {'W': int(cols[7]), 'L': int(cols[8])}
+                    try:
+                        entry['rating'] = float(cols[9])
+                    except ValueError:
+                        continue
+                    yield entry
+            except Exception as ex:
+                logger.error(str(ex))
