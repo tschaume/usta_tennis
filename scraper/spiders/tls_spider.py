@@ -26,6 +26,7 @@ class TlsSpider(scrapy.Spider):
             url = url_obj.xpath('@href').extract_first()
             request = scrapy.Request(response.urljoin(url), self.parse_section)
             request.meta['year'] = response.meta['year']
+            request.meta['section'] = section
             yield request
 
     def parse_section(self, response):
@@ -35,6 +36,7 @@ class TlsSpider(scrapy.Spider):
             url = url_obj.xpath('@href').extract_first()
             request = scrapy.Request(response.urljoin(url), self.parse_area)
             request.meta['year'] = response.meta['year']
+            request.meta['section'] = response.meta['section']
             request.meta['area'] = area
             yield request
 
@@ -44,6 +46,7 @@ class TlsSpider(scrapy.Spider):
         ).extract():
             request = scrapy.Request(response.urljoin(url), self.parse_list)
             request.meta['year'] = response.meta['year']
+            request.meta['section'] = response.meta['section']
             request.meta['area'] = response.meta['area']
             yield request
 
@@ -52,14 +55,20 @@ class TlsSpider(scrapy.Spider):
             '//tr[contains(td/@class, "tdatlevel")]'
         ):
             name = row.xpath('td/a[@href]/text()').extract_first()
+            cols = row.xpath('td/text()').extract()
             if name:
                 entry = TlsEntry()
                 entry['name'] = name
                 entry['year'] = response.meta['year']
+                entry['section'] = response.meta['section']
                 entry['area'] = response.meta['area']
+                entry['facility'] = cols[3]
+                entry['level'] = cols[10] + cols[11]
             else:
-                cols = row.xpath('td/text()').extract()
                 entry['league'] = cols[2]
+                entry['flight'] = cols[3]
+                entry['matches'] = {'W': int(cols[5]), 'L': int(cols[6])}
+                entry['games'] = {'W': int(cols[7]), 'L': int(cols[8])}
                 try:
                     entry['rating'] = float(cols[9])
                 except ValueError:
