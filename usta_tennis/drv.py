@@ -33,7 +33,7 @@ def drv(year):
                                 missing_players.append(i)
                                 skip = True
                                 break
-                            drv[i] = [float(player['rating_level']) - 0.25] # TODO
+                            drv[i] = [float(player['rating_level']) - 0.25] # TODO take from TLS
                         if wl not in dr:
                             dr[wl] = drv[i][-1]
                         else:

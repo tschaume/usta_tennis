@@ -1,1 +1,4 @@
 notebooks/.ipynb_checkpoints
+papers/*
+schmidt_ratings/*
+usta_tennis.egg-info/*
