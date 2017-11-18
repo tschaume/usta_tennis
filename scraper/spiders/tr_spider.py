@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import scrapy, logging, re, yaml, os
+import scrapy, logging, re, os
 from scraper.items import TrEntry
 from operator import itemgetter
 from copy import deepcopy
@@ -12,13 +12,13 @@ class TrSpider(scrapy.Spider):
     allowed_domains = ['tennisrecord.com', 'universaltennis.com']
     start_urls = ['https://universaltennis.com/login']
     utr_url = 'https://universaltennis.com/search?type=player&query={}'
-    mod_dir = os.path.dirname(__file__)
-    with open(os.path.join(mod_dir, 'utr_login.yaml'), 'r') as f:
-        utr_login = yaml.load(f)
 
     def parse(self, response):
         return scrapy.FormRequest.from_response(
-            response, formdata=self.utr_login,
+            response, formdata={
+                'Email': os.environ.get('UTR_USER'),
+                'Password': os.environ.get('UTR_PWD')
+            },
             callback=self.after_login
         )
 
