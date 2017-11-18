@@ -1,3 +1,6 @@
+build/*
+project.egg-info/*
+*.pyc
 notebooks/.ipynb_checkpoints
 papers/*
 schmidt_ratings/*
