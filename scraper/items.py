@@ -34,9 +34,6 @@ class TlsEntry(scrapy.Item):
     games = scrapy.Field()
 
 class TrEntry(scrapy.Item):
-    section = scrapy.Field()
-    district = scrapy.Field()
-    area = scrapy.Field()
-    gender = scrapy.Field()
-    name = scrapy.Field()
-    ratings = scrapy.Field()
+    info = scrapy.Field()
+    tr = scrapy.Field()
+    utr = scrapy.Field()
