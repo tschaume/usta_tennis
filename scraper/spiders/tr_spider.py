@@ -125,7 +125,7 @@ class TrSpider(scrapy.Spider):
                             value = value.replace(' ', '')
                         ratings[keys[vidx+1]] = value
 
-                if ratings['EstimatedDynamic'] < 2.0:
+                if 'EstimatedDynamic' not in ratings:
                     break
 
                 url = url_obj.xpath('@href').extract_first()
