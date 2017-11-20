@@ -61,10 +61,10 @@ class TrSpider(scrapy.Spider):
         url_xpath = "//a[starts-with(@href, '/adult/ratingsgender')]"
         for url_obj in response.xpath(url_xpath):
             area = url_obj.xpath('text()').extract_first()
-            if area not in [
-                'East Bay', 'Diablo North', 'Diablo South', 'Sacramento', 'San Francisco'
-            ]:
-                continue
+            #if area not in [
+            #    'East Bay', 'Diablo North', 'Diablo South', 'Sacramento', 'San Francisco'
+            #]:
+            #    continue
             url = url_obj.xpath('@href').extract_first()
             logger.info('area = {}'.format(area))
             request = scrapy.Request(response.urljoin(url), self.parse_area)
@@ -125,7 +125,7 @@ class TrSpider(scrapy.Spider):
                             value = value.replace(' ', '')
                         ratings[keys[vidx+1]] = value
 
-                if ratings['EstimatedDynamic'] < 2.6:
+                if ratings['EstimatedDynamic'] < 2.0:
                     break
 
                 url = url_obj.xpath('@href').extract_first()
@@ -171,8 +171,9 @@ class TrSpider(scrapy.Spider):
                        and city == response.meta['info']['city']:
                         atag = result.xpath('h3/a')
                         name = atag.xpath('text()').extract_first()
-                        name = ' '.join(name.strip().lower().split())
-                        if name == response.meta['info']['name'].lower():
+                        first_name, last_name = name.strip().lower().split()
+                        first_name_tr, last_name_tr = response.meta['info']['name'].lower().split()
+                        if last_name == last_name_tr and first_name.startswith(first_name_tr):
                             url = atag.xpath('@href').extract_first()
                             break
 
