@@ -153,6 +153,13 @@ class TrSpider(scrapy.Spider):
         )
         yield request
 
+    def check_name(self, response, name):
+        first_name, last_name = itemgetter(0,-1)(name.strip().lower().split())
+        first_name_tr, last_name_tr = itemgetter(0,-1)(
+            response.meta['info']['name'].lower().split()
+        )
+        return bool(last_name == last_name_tr and first_name.startswith(first_name_tr))
+
     def parse_utr(self, response):
         d = json.loads(response.body)
         utr_id = None
@@ -164,23 +171,27 @@ class TrSpider(scrapy.Spider):
                     city = result['LocationCityName']
                     if city is not None and city.lower().replace('-', ' ') == response.meta['info']['city'].lower():
                         name = result['DisplayName']
-                        first_name, last_name = itemgetter(0,-1)(name.strip().lower().split())
-                        first_name_tr, last_name_tr = itemgetter(0,-1)(
-                            response.meta['info']['name'].lower().split()
-                        )
-                        if last_name == last_name_tr and first_name.startswith(first_name_tr):
+                        if self.check_name(response, name):
                             utr_id = result['Id']
                             break
 
         if utr_id is None:
-            utr_id = d['value'][0]['Id']
-
-        url = '/players/{}'.format(utr_id)
-        request = scrapy.Request(response.urljoin(url), self.parse_profile)
-        for k in ['info', 'tr']:
-            request.meta[k] = deepcopy(response.meta[k])
-        request.meta['utr'] = {'id': utr_id}
-        yield request
+            entry = TrEntry()
+            for k in ['info', 'tr']:
+                entry[k] = deepcopy(response.meta[k])
+            yield entry
+            #result = d['value'][0]
+            #name = result['DisplayName']
+            #if not self.check_name(response, name):
+            #    return
+            #utr_id = result['Id']
+        else:
+            url = '/players/{}'.format(utr_id)
+            request = scrapy.Request(response.urljoin(url), self.parse_profile)
+            for k in ['info', 'tr']:
+                request.meta[k] = deepcopy(response.meta[k])
+            request.meta['utr'] = {'id': utr_id}
+            yield request
 
     def parse_utr_legacy(self, response):
         results = response.xpath('//div[@class="inner-results"]')
