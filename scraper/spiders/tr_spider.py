@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import scrapy, logging, re, os
+import scrapy, logging, re, os, json
 from scraper.items import TrEntry
 from operator import itemgetter
 from copy import deepcopy
@@ -11,7 +11,8 @@ class TrSpider(scrapy.Spider):
     name = 'tr'
     allowed_domains = ['tennisrecord.com', 'universaltennis.com']
     start_urls = ['https://universaltennis.com/login']
-    utr_url = 'https://universaltennis.com/search?type=player&query={}'
+    #utr_url = 'https://universaltennis.com/search?type=player&query={}'
+    utr_url = 'https://universaltennis.com/mvc/search/azuresearch?search={}&top=10&skip=0&filter=(Type%20eq%20%27PLAYER%27)'
 
     def parse(self, response):
         return scrapy.FormRequest.from_response(
@@ -61,10 +62,6 @@ class TrSpider(scrapy.Spider):
         url_xpath = "//a[starts-with(@href, '/adult/ratingsgender')]"
         for url_obj in response.xpath(url_xpath):
             area = url_obj.xpath('text()').extract_first()
-            #if area not in [
-            #    'East Bay', 'Diablo North', 'Diablo South', 'Sacramento', 'San Francisco'
-            #]:
-            #    continue
             url = url_obj.xpath('@href').extract_first()
             logger.info('area = {}'.format(area))
             request = scrapy.Request(response.urljoin(url), self.parse_area)
@@ -106,9 +103,7 @@ class TrSpider(scrapy.Spider):
             else:
                 url_obj = row.xpath('td/a')
                 name = url_obj.xpath('text()').extract_first()
-                logger.info('name = {}'.format(name))
                 if self.db['trentries'].find({'info.name': name}).count():
-                    logger.info('{} already in DB!'.format(name))
                     continue
 
                 ratings = {}
@@ -159,16 +154,45 @@ class TrSpider(scrapy.Spider):
         yield request
 
     def parse_utr(self, response):
+        d = json.loads(response.body)
+        utr_id = None
+        for idx, result in enumerate(d['value']):
+            country = result.get('LocationCountryCode', result.get('NationalityCode', ''))
+            if country is not None and country.lower() == 'usa':
+                state = result['LocationStateAbbr']
+                if state is not None and states[state].lower() == response.meta['info']['state'].lower():
+                    city = result['LocationCityName']
+                    if city is not None and city.lower().replace('-', ' ') == response.meta['info']['city'].lower():
+                        name = result['DisplayName']
+                        first_name, last_name = itemgetter(0,-1)(name.strip().lower().split())
+                        first_name_tr, last_name_tr = itemgetter(0,-1)(
+                            response.meta['info']['name'].lower().split()
+                        )
+                        if last_name == last_name_tr and first_name.startswith(first_name_tr):
+                            utr_id = result['Id']
+                            break
+
+        if utr_id is None:
+            utr_id = d['value'][0]['Id']
+
+        url = '/players/{}'.format(utr_id)
+        request = scrapy.Request(response.urljoin(url), self.parse_profile)
+        for k in ['info', 'tr']:
+            request.meta[k] = deepcopy(response.meta[k])
+        request.meta['utr'] = {'id': utr_id}
+        yield request
+
+    def parse_utr_legacy(self, response):
         results = response.xpath('//div[@class="inner-results"]')
         url = None
         for result in results:
             location = result.xpath('ul[2]/li[1]/text()').extract_first()
             if location is not None:
-                location = location.split(', ')
+                location = location.lower().split(', ')
                 if len(location) == 3:
                     city, state, country = location
-                    if country == 'USA' and state == response.meta['info']['state'] \
-                       and city == response.meta['info']['city']:
+                    if country == 'usa' and state == response.meta['info']['state'].lower() \
+                       and city == response.meta['info']['city'].lower().replace('-', ' '):
                         atag = result.xpath('h3/a')
                         name = atag.xpath('text()').extract_first()
                         first_name, last_name = itemgetter(0,-1)(name.strip().lower().split())
