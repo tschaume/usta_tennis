@@ -81,7 +81,7 @@ class TrSpider(scrapy.Spider):
             yield request
 
     def parse_gender(self, response):
-        url_xpath = "//a[text()='Estimated Dynamic Rating']/@href"
+        url_xpath = "//a[text()='Projected Year End Rating']/@href"
         url = response.xpath(url_xpath).extract_first()
         request = scrapy.Request(response.urljoin(url), self.parse_ratings)
         request.meta['info'] = deepcopy(response.meta['info'])
