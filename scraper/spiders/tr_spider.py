@@ -112,7 +112,7 @@ class TrSpider(scrapy.Spider):
                 ).extract()):
                     value = value.strip()
                     if vidx == 0:
-                        ratings[keys[vidx]] = int(value)
+                        ratings[keys[vidx]] = int(value) if value else 0
                     else:
                         try:
                             value = float(value)
