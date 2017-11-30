@@ -18,7 +18,6 @@ class TlinkSpider(scrapy.Spider):
     ]
 
     def parse(self, response):
-        # TODO check if identical entry exists, else add new entry
         rows = '//table[@id="DataGrid1"]/tr'
         keys = None
         for irow, row in enumerate(response.xpath(rows)):
@@ -30,6 +29,9 @@ class TlinkSpider(scrapy.Spider):
             else:
                 cols = row.xpath('td/descendant-or-self::*/text()').extract()
                 cols[0] = ' '.join(cols[0].strip().split(', ')[::-1])
+                d = dict(zip(keys, cols))
+                if self.db['tlinkentries'].find({'info': d}).count():
+                    continue
                 entry = TlinkEntry()
-                entry['info'] = dict(zip(keys, cols))
+                entry['info'] = d
                 yield entry
