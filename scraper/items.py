@@ -37,3 +37,6 @@ class TrEntry(scrapy.Item):
     info = scrapy.Field()
     tr = scrapy.Field()
     utr = scrapy.Field()
+
+class TlinkEntry(scrapy.Item):
+    info = scrapy.Field()
