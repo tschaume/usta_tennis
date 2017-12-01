@@ -30,7 +30,8 @@ class TlinkSpider(scrapy.Spider):
                 cols = row.xpath('td/descendant-or-self::*/text()').extract()
                 cols[0] = ' '.join(cols[0].strip().split(', ')[::-1])
                 d = dict(zip(keys, cols))
-                if self.db['tlinkentries'].find({'info': d}).count():
+                query = {'info.name': d['name'], 'info.year_end_rating_date': d['year_end_rating_date']}
+                if self.db['tlinkentries'].find(query).count():
                     continue
                 entry = TlinkEntry()
                 entry['info'] = d
