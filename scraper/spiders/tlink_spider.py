@@ -18,6 +18,7 @@ class TlinkSpider(scrapy.Spider):
     ]
 
     def parse(self, response):
+        #start_count = self.db['tlinkentries'].count()
         rows = '//table[@id="DataGrid1"]/tr'
         keys = None
         for irow, row in enumerate(response.xpath(rows)):
@@ -33,6 +34,13 @@ class TlinkSpider(scrapy.Spider):
                 query = {'info.name': d['name'], 'info.year_end_rating_date': d['year_end_rating_date']}
                 if self.db['tlinkentries'].find(query).count():
                     continue
+                    #cnt = self.db['tlinkentries'].count() - start_count
+                    #if cnt%50 == 0:
+                    #    sgn = -1 ** ((cnt/50)%2)
+                    #    d['year_end_rating_level'] = float(d['year_end_rating_level']) + sgn * 0.5
+                    #date = map(int, d['year_end_rating_date'].split('/'))
+                    #date[-1] += 1
+                    #d['year_end_rating_date'] = '/'.join(map(str, date))
                 entry = TlinkEntry()
                 entry['info'] = d
                 yield entry
