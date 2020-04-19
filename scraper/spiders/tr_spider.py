@@ -10,28 +10,33 @@ logger = logging.getLogger('tr')
 class TrSpider(scrapy.Spider):
     name = 'tr'
     allowed_domains = ['tennisrecord.com', 'universaltennis.com']
-    start_urls = ['https://universaltennis.com/login']
+    #start_urls = ['https://universaltennis.com/login']
+    start_urls = ['https://www.myutr.com/login']
     #utr_url = 'https://universaltennis.com/search?type=player&query={}'
-    utr_url = 'https://universaltennis.com/mvc/search/azuresearch?search={}&top=10&skip=0&filter=(Type%20eq%20%27PLAYER%27)'
+    #utr_url = 'https://universaltennis.com/mvc/search/azuresearch?search={}&top=10&skip=0&filter=(Type%20eq%20%27PLAYER%27)'
+    utr_url = 'https://www.myutr.com/search?query=Joshua%20Duong&utrMin=1&utrMax=16&utrType=verified&utrFitPosition=6&type=players'
 
     def parse(self, response):
+        print('LOGIN ...')
         return scrapy.FormRequest.from_response(
             response, formdata={
-                'Email': os.environ.get('UTR_USER'),
-                'Password': os.environ.get('UTR_PWD')
+                'email': os.environ.get('UTR_USER'),
+                'password': os.environ.get('UTR_PWD')
             },
             callback=self.after_login
         )
 
     def after_login(self, response):
+        print('after_login ...')
+        logger.info(response.body)
         if b"Please provide" in response.body:
             logger.error("UTR Login failed!")
             return
         logger.info("UTR Login succeeded!")
-        yield scrapy.Request(
-            'http://www.tennisrecord.com/adult/ratingssection.aspx',
-            self.parse_tr
-        )
+        #yield scrapy.Request(
+        #    'http://www.tennisrecord.com/adult/ratingssection.aspx',
+        #    self.parse_tr
+        #)
 
     def parse_tr(self, response):
         url_xpath = "//a[starts-with(@href, '/adult/ratingsdistrict')]"

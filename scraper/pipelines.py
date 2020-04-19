@@ -15,7 +15,7 @@ class MongoPipeline(object):
     def __init__(self, mongo_uri, mongo_db):
         self.mongo_uri = mongo_uri
         self.mongo_db = mongo_db
-        self.names_seen = set()
+        self.ids_seen = set()
 
     @classmethod
     def from_crawler(cls, crawler):
@@ -33,15 +33,10 @@ class MongoPipeline(object):
         self.client.close()
 
     def process_item(self, item, spider):
-        collection_name = inflect_engine.plural(type(item).__name__.lower())
-        self.db[collection_name].insert(dict(item))
-        return item
-        #name = item.get('info', {}).get('name', None)
-        #if name is not None and name in self.names_seen:
-        #    raise DropItem("Duplicate name found: %s" % name)
-        #else:
-        #    if name is not None:
-        #        self.names_seen.add(name)
-        #    collection_name = inflect_engine.plural(type(item).__name__.lower())
-        #    self.db[collection_name].insert(dict(item))
-        #    return item
+        if item['id'] in self.ids_seen:
+            raise DropItem("Duplicate name found: %s" % item['data'])
+        else:
+            self.ids_seen.add(item['id'])
+            collection_name = inflect_engine.plural(type(item).__name__.lower())
+            self.db[collection_name].insert(dict(item))
+            return item

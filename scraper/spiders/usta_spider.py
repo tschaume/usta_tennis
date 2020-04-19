@@ -1,19 +1,91 @@
 # -*- coding: utf-8 -*-
 
+import sys
 import scrapy, itertools, logging
-from scraper.items import Player, Match
+from scraper.items import Player, Match, Team
 from datetime import datetime
 logger = logging.getLogger('usta')
+
+root_url = "https://www.ustanorcal.com"
+seasons = {
+    "249": "2019 Adult 18 - 45 Team Singles League",
+    "257": "2020 Adult 18 & Over",
+    "253": "2020 Adult 40 & Over",
+    "256": "2020 Adult 65 & Over",
+    "246": "2020 Mixed 40 & Over ",
+    "251": "2020 Mixed 55 & Over",
+    "247": "2020 Reno/Tahoe Adult 40",
+    "228": "2018 18-39 Team Singles League",
+    "230": "2018 Adult 70 & Over",
+    "239": "2019 Adult 18 & Over",
+    "237": "2019 Adult 18-39 League",
+    "234": "2019 Adult 40 & Over",
+    "243": "2019 Adult 55 & Over",
+    "238": "2019 Adult 65 & Over",
+    "245": "2019 Adult 70 & Over ",
+    "242": "2019 Mixed 18 & Over ",
+    "227": "2019 Mixed 40 & Over",
+    "236": "2019 Mixed 55 & Over",
+    "212": "2017 Adult 70 & Over",
+    "221": "2018 Adult 18 & Over",
+    "216": "2018 Adult 18 - 39 League",
+    "218": "2018 Adult 40 & Over ",
+    "224": "2018 Adult 55 & Over",
+    "220": "2018 Adult 65 & Over",
+    "225": "2018 Mixed 18 & Over",
+    "210": "2018 Mixed 40 & Over",
+    "219": "2018 Mixed 55 & Over ",
+    "198": "2016 Adult 70 & Over ",
+    "197": "2016 Mixed 55 & Over ",
+    "204": "2017 Adult 18 & Over ",
+    "201": "2017 Adult 40 & Over ",
+    "206": "2017 Adult 55 & Over",
+    "203": "2017 Adult 65 & Over ",
+    "215": "2017 Mens 2.5+ Pilot",
+    "205": "2017 Mixed 18 & Over ",
+    "202": "2017 Mixed 40 & Over ",
+    "213": "2017 Mixed 70 & Over",
+    "184": "2015 Adult 70 & Over",
+    "183": "2015 Mixed 55 & Over",
+    "192": "2016 Adult 18 & Over ",
+    "188": "2016 Adult 40 & Over",
+    "195": "2016 Adult 55 & Over",
+    "190": "2016 Adult 65 & Over",
+    "194": "2016 Mixed 18 & Over ",
+    "189": "2016 Mixed 40 & Over",
+    "168": "2014 Mixed 55 & Over ",
+    "177": "2015 Adult 18 & Over",
+    "172": "2015 Adult 40 & Over",
+    "179": "2015 Adult 55 & Over",
+    "176": "2015 Adult 65 & Over",
+    "180": "2015 Mixed 18 & Over ",
+    "173": "2015 Mixed 40 & Over",
+    "145": "2013 Mixed 40 & Over",
+    "158": "2014 Adult 18 & Over",
+    "152": "2014 Adult 40 & Over ",
+    "153": "2014 Adult 55 & Over",
+    "155": "2014 Adult 65 & Over",
+    "167": "2014 Adult 70 & Over ",
+    "163": "2014 Mixed Doubles 18 & Over",
+    "164": "2014 Mixed Doubles 40 & Over",
+    "131": "2012 Super Senior 70 League",
+    "141": "2013 Adult 18 & Over",
+    "138": "2013 Adult 40 & Over",
+    "142": "2013 Adult 55 & Over",
+    "140": "2013 Adult 65 & Over",
+    "148": "2013 Adult 70 & Over",
+    "144": "2013 Mixed 18 & Over",
+    "139": "2013 Mixed 55 & Over",
+}
 
 class UstaSpider(scrapy.Spider):
     name = 'usta'
     allowed_domains = ['ustanorcal.com']
     start_urls = [
-        'https://www.ustanorcal.com/ntrpsearch.asp#goto',
+        #'https://www.ustanorcal.com/ntrpsearch.asp#goto',
         'https://www.ustanorcal.com/listdivisions.asp'
     ]
-    area = 'eb' # set to None or '' to download all areas
-    seasonid = '138'
+    area = '' # set to None or '' to download all areas
 
     def parse(self, response):
         # extract select options for post request
@@ -38,10 +110,13 @@ class UstaSpider(scrapy.Spider):
                     callback=self.parse_players
                 )
         elif 'listdivisions' in response.url:
-            payload = {'seasonid': self.seasonid, 'submit1': ' GO '}
-            yield scrapy.http.FormRequest(
-                response.url, formdata=payload, callback=self.parse_league
-            )
+            for season_id in seasons.keys():
+                payload = {'seasonid': season_id, 'submit1': ' GO '}
+                request = scrapy.http.FormRequest(
+                    response.url, formdata=payload, callback=self.parse_league
+                )
+                request.meta["season_id"] = season_id
+                yield request
 
     def parse_players(self, response):
         no_players_found = response.xpath('//b[text()="No Players Found!"]')
@@ -67,10 +142,24 @@ class UstaSpider(scrapy.Spider):
             logger.info('No Players Found!')
 
     def parse_league(self, response):
-        urls = response.xpath('//table')[2].xpath('tr/td/a/@href').extract()
-        for idx, url in enumerate(urls):
+        tables = response.xpath('//table')
+        if len(tables) < 3:
+            return
+        levels = tables[2].xpath('tr/td/a')
+        for idx, level in enumerate(levels):
+            url = level.xpath('@href').extract_first()
+            level_name = level.xpath('text()').extract_first()
+            league, gender, ntrp = level_name.rsplit(' ', 2)
+            year = league.split(' ', 1)[0]
             logger.info('league = {}'.format(url))
-            yield scrapy.Request(response.urljoin(url), self.parse_teams)
+            request = scrapy.Request(response.urljoin(url), self.parse_teams)
+            request.meta["season_id"] = response.meta["season_id"]
+            request.meta["year"] = year
+            request.meta["league"] = league
+            request.meta["league_url"] = f"{root_url}/{url}"
+            request.meta["gender"] = gender[0]
+            request.meta["level"] = ntrp
+            yield request
 
     def parse_teams(self, response):
         table = response.xpath('//table[@class="DataList"]')
@@ -78,9 +167,41 @@ class UstaSpider(scrapy.Spider):
             'tr[td//text()[contains(., "{}")]]'.format(self.area.upper())
         ) if self.area else table.xpath('tr')
         urls = rows.xpath('td/a/@href[contains(., "teaminfo")]').extract()
-        for idx, url in enumerate(urls):
-            logger.info('team = {}'.format(url))
-            yield scrapy.Request(response.urljoin(url), self.parse_team)
+        ids = [int(u.split('=')[-1]) for u in urls]
+        #for idx, url in enumerate(urls):
+        #    logger.info('team = {}'.format(url))
+        #    yield scrapy.Request(response.urljoin(url), self.parse_team)
+        header = list(filter(None, [
+            c.split()[0].lower() for c in rows[0].xpath('td//text()').extract()
+        ]))
+        looking = "Looking"
+        idx_map = [0, 1, 4]
+        for i, row in zip(ids, rows[1:]):
+            columns = row.xpath('td//text()').extract()
+            links = {
+                header[idx_map[j]]: l
+                for j, l in enumerate(row.xpath('td/a/@href').extract())
+            }
+            if looking in columns:
+                columns.remove(looking)
+            team = Team()
+            team["year"] = response.meta["year"]
+            team["league"] = response.meta["league"]
+            team["league_url"] = response.meta["league_url"]
+            team["gender"] = response.meta["gender"]
+            team["level"] = response.meta["level"]
+            team["id"] = i
+            season_id = response.meta["season_id"]
+            team["season_id"] = season_id
+            team["season_name"] = seasons[season_id].strip()
+            clean_columns = list(filter(None, [c.strip() for c in columns]))
+            for key, col in zip(header, clean_columns):
+                team[key] = col
+                link = links.get(key)
+                if link:
+                    team[f"{key}_url"] = f"{root_url}/{link}"
+            yield team
+
 
     def parse_team(self, response):
         urls = response.xpath('//td/a/@href[contains(.,"scorecard.asp")]').extract()
