@@ -2,7 +2,7 @@
 
 import sys
 import scrapy, itertools, logging
-from scraper.items import Player, Match, Team
+from scraper.items import Player, Match, Team, Registration
 from datetime import datetime
 logger = logging.getLogger('usta')
 
@@ -168,9 +168,6 @@ class UstaSpider(scrapy.Spider):
         ) if self.area else table.xpath('tr')
         urls = rows.xpath('td/a/@href[contains(., "teaminfo")]').extract()
         ids = [int(u.split('=')[-1]) for u in urls]
-        #for idx, url in enumerate(urls):
-        #    logger.info('team = {}'.format(url))
-        #    yield scrapy.Request(response.urljoin(url), self.parse_team)
         header = list(filter(None, [
             c.split()[0].lower() for c in rows[0].xpath('td//text()').extract()
         ]))
@@ -184,6 +181,7 @@ class UstaSpider(scrapy.Spider):
             }
             if looking in columns:
                 columns.remove(looking)
+
             team = Team()
             team["year"] = response.meta["year"]
             team["league"] = response.meta["league"]
@@ -195,18 +193,81 @@ class UstaSpider(scrapy.Spider):
             team["season_id"] = season_id
             team["season_name"] = seasons[season_id].strip()
             clean_columns = list(filter(None, [c.strip() for c in columns]))
+
             for key, col in zip(header, clean_columns):
                 team[key] = col
                 link = links.get(key)
                 if link:
-                    team[f"{key}_url"] = f"{root_url}/{link}"
+                    url_key, url = f"{key}_url", f"{root_url}/{link}"
+                    team[url_key] = url
+                    if key == "team":
+                        request = scrapy.Request(response.urljoin(link), self.parse_team)
+                        request.meta['team_id'] = i
+                        yield request
+
             yield team
 
 
     def parse_team(self, response):
-        urls = response.xpath('//td/a/@href[contains(.,"scorecard.asp")]').extract()
-        for url in urls:
-            yield scrapy.Request(response.urljoin(url), self.parse_match)
+        team_id = response.meta["team_id"]
+        rows = response.xpath(
+            "//table[@border='0' and @width='100%' and @cellspacing='1' and @cellpadding='1' and not(@align)]"
+        )[0].xpath('tr[not(@class)]')
+
+        name_pids = []
+        for u in rows.xpath('td/a[@href]'):
+            name = u.xpath('text()').extract_first().strip().replace(', ', ',')
+            pid = int(u.xpath('@href').extract_first().split('=')[-1])
+            name_pids.append((name, pid))
+
+        header = list(filter(None, [
+            c.replace(' ', '').lower() for c in rows[0].xpath('td//text()')[1:].extract()
+        ]))
+        header[-4:-1] = ["playoffs", "districts", "sectionals"]
+        wl = "win/loss"
+        idx = header.index(wl)
+        header.remove(wl)
+        for i, k in enumerate(wl.split("/")):
+            header.insert(idx+i, k)
+
+        for (name, player_id), row in zip(name_pids, rows[1:]):
+            columns = row.xpath('td/text()').extract()
+            hd = header.copy()
+            if len(columns) + 1 < len(hd):  # account for win/loss split
+                hd.remove("np/sw")
+
+            idx = hd.index(wl.split("/")[0])
+            w_l = columns.pop(idx)
+            for i, k in enumerate(w_l.split("/")):
+                columns.insert(idx+i, k.strip())
+
+            registration = Registration()
+            registration["id"] = f"{team_id}_{player_id}"
+            registration["team_id"] = team_id
+            registration["player_id"] = player_id
+            registration["player"] = name
+            for key, col in zip(hd, columns):
+                value = col.strip().replace('^', '').strip("/")
+                if key.endswith('%') and value == '-':
+                    break
+
+                try:
+                    value = int(value)
+                except:
+                    if value == '-':
+                        value = 0
+                    elif value.endswith('%'):
+                        key = key.replace('%', '_percent')
+                        value = float(value[:-1])
+
+                registration[key] = value
+            else:
+                yield registration
+
+        #urls = response.xpath('//td/a/@href[contains(.,"scorecard.asp")]').extract()
+        #for url in urls:
+        #    yield scrapy.Request(response.urljoin(url), self.parse_match)
+
 
     def get_score(self, row):
         score = row.xpath('td')[3].xpath('text()').extract_first()

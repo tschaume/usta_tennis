@@ -21,6 +21,27 @@ class Team(scrapy.Item):
     organization_url = scrapy.Field()
     created = scrapy.Field()
 
+class Registration(scrapy.Item):
+    id = scrapy.Field()
+    team_id = scrapy.Field()
+    player_id = scrapy.Field()
+    player = scrapy.Field()
+    city = scrapy.Field()
+    gender = scrapy.Field()
+    rating = scrapy.Field()
+    expiration = scrapy.Field()
+    win = scrapy.Field()
+    loss = scrapy.Field()
+    matches = scrapy.Field()
+    defaults = scrapy.Field()
+    win_percent = scrapy.Field()
+    singles = scrapy.Field()
+    doubles = scrapy.Field()
+    playoffs = scrapy.Field()
+    districts = scrapy.Field()
+    sectionals = scrapy.Field()
+    rostered = scrapy.Field()
+
 class Player(scrapy.Item):
     id = scrapy.Field()
     city = scrapy.Field()
