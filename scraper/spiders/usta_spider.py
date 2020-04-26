@@ -97,7 +97,8 @@ class UstaSpider(scrapy.Spider):
                 opt_values.append(opt.xpath('td/select/option/@value')[1:].extract())
             # send post request for all options combinations
             for idx, opt_combo in enumerate(itertools.product(*opt_values)):
-                if self.area and self.area not in opt_combo[0]: continue
+                if self.area and self.area not in opt_combo[0]:
+                    continue
                 logger.info('players = {}'.format(opt_combo))
                 payload = dict(
                     (opt_keys[iopt], opt)
@@ -174,6 +175,8 @@ class UstaSpider(scrapy.Spider):
         looking = "Looking"
         idx_map = [0, 1, 4]
         for i, row in zip(ids, rows[1:]):
+            #if i != 68807:
+            #    continue
             columns = row.xpath('td//text()').extract()
             links = {
                 header[idx_map[j]]: l
@@ -221,23 +224,26 @@ class UstaSpider(scrapy.Spider):
             name_pids.append((name, pid))
 
         header = list(filter(None, [
-            c.replace(' ', '').lower() for c in rows[0].xpath('td//text()')[1:].extract()
+            c.replace(' ', '').replace('/', '_').lower()
+            for c in rows[0].xpath('td//text()')[1:].extract()
         ]))
         header[-4:-1] = ["playoffs", "districts", "sectionals"]
-        wl = "win/loss"
+        wl = "win_loss"
         idx = header.index(wl)
         header.remove(wl)
-        for i, k in enumerate(wl.split("/")):
+        for i, k in enumerate(wl.split("_")):
             header.insert(idx+i, k)
 
         for (name, player_id), row in zip(name_pids, rows[1:]):
             columns = row.xpath('td/text()').extract()
+            if ")" in columns:
+                columns.remove(")")
             hd = header.copy()
             if len(columns) + 1 < len(hd):  # account for win/loss split
-                hd.remove("np/sw")
+                hd.remove("np_sw")
 
-            idx = hd.index(wl.split("/")[0])
-            w_l = columns.pop(idx)
+            idx = hd.index(wl.split("_")[0])
+            w_l = columns.pop(idx).replace("(", "")
             for i, k in enumerate(w_l.split("/")):
                 columns.insert(idx+i, k.strip())
 
@@ -249,7 +255,7 @@ class UstaSpider(scrapy.Spider):
             for key, col in zip(hd, columns):
                 value = col.strip().replace('^', '').strip("/")
                 if key.endswith('%') and value == '-':
-                    break
+                    break  # drop registrations without matches
 
                 try:
                     value = int(value)

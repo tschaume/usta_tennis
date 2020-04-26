@@ -29,6 +29,7 @@ class Registration(scrapy.Item):
     city = scrapy.Field()
     gender = scrapy.Field()
     rating = scrapy.Field()
+    np_sw = scrapy.Field()
     expiration = scrapy.Field()
     win = scrapy.Field()
     loss = scrapy.Field()
